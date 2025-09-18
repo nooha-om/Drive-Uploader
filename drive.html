@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload to Google Drive</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    input[type="file"] { margin: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Upload File to Google Drive</h2>
+
+  <button onclick="handleAuthClick()">Login with Google</button><br>
+  <input type="file" id="fileInput">
+  <button onclick="uploadFile()">Upload File</button>
+
+  <script>
+    const CLIENT_ID = "61807026030-32qdi67eoj30b159l7t193cqf7rbdp8b.apps.googleusercontent.com";
+    const SCOPES = "https://www.googleapis.com/auth/drive.file";
+
+    let token = null;
+    let tokenClient;
+
+  
+    function gisLoaded() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (resp) => {
+          if (resp.access_token) {
+            token = resp.access_token;
+            alert("Login successful!");
+          }
+        },
+      });
+    }
+
+    function handleAuthClick() {
+      tokenClient.requestAccessToken();
+    }
+
+    
+    async function uploadFile() {
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) {
+        alert("Please select a file first!");
+        return;
+      }
+      if (!token) {
+        alert("Please login first!");
+        return;
+      }
+
+      const metadata = {
+        name: file.name,
+        mimeType: file.type,
+      };
+
+      const form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+      form.append("file", file);
+
+      const res = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: form,
+        }
+      );
+
+      const data = await res.json();
+      alert("File uploaded! File ID: " + data.id);
+    }
+  </script>
+
+ 
+  <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
+</body>
+</html>
